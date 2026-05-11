@@ -1,535 +1,229 @@
-# BÀI KIỂM TRA SỐ 2 – HỆ QUẢN TRỊ CSDL
+# BÁO CÁO BÀI TẬP VỀ NHÀ 03: THIẾT KẾ VÀ CÀI ĐẶT CSDL QUẢN LÝ CẦM ĐỒ
 
-## Thông tin sinh viên
-
-- Họ tên: TRẦN VĂN KHẢI
-- Mã SV: K235480106035
-- Chủ đề: Quản lý kho bán gear cho game thủ
-
----
-
-# PHẦN 1: THIẾT KẾ DATABASE
-
-## Ảnh 1: Tạo Database
-
-- Lệnh SQL:
-
-```sql
-CREATE DATABASE [QuanLyGear_K235480106035];
-GO
-USE [QuanLyGear_K235480106035];
-GO
-```
-
-- Mục đích: tạo cơ sở dữ liệu cho hệ thống quản lý gear
-- Kết quả: database được tạo thành công
-
-![Ảnh 1](pic/pic_1.png)
+**Môn học:** Hệ quản trị CSDL  
+**Lớp:** 59KMT  
+**Giảng viên hướng dẫn:** Đỗ Duy Cốp  
+**Sinh viên thực hiện:** Trần Văn Khải  
+**MSSV:** K235480106035
 
 ---
 
-## Ảnh 2: Tạo bảng LoaiSanPham
+## 1. Mô tả bài toán
+Hệ thống quản lý các hợp đồng vay tiền thế chấp tài sản. Điểm đặc thù của hệ thống là cơ chế tính lãi linh hoạt: **Lãi đơn (5.000đ/1.000.000đ gốc/ngày)** áp dụng trước khi đến hạn, và **Lãi kép** áp dụng trên (Gốc + Lãi tích lũy) khi quá hạn mốc Deadline 1. Hệ thống quản lý danh mục tài sản thế chấp và xử lý thanh lý đồ khi quá hạn. Mọi biến động dòng tiền và trạng thái hợp đồng đều được lưu vết chi tiết (Audit Log) bao gồm cả thông tin người thu tiền (Mã nhân viên).
 
-- Lệnh SQL:
+---
 
+## 2. Thiết kế Cơ sở dữ liệu (Nhiệm vụ 1)
+
+### 2.1. Sơ đồ thực thể quan hệ (ERD)
+![1. Sơ đồ ERD Quản lý cầm đồ](images/1.png)
+
+### 2.2. Cài đặt các bảng dữ liệu (3NF) - Trích xuất từ `baitapvenha3.sql`
+
+**Bảng 1: Khách hàng (dbo.KhachHang)**
+![2. Cấu trúc bảng Khách hàng](images/2.png)
 ```sql
-USE [QuanLyGear_K235480106035];
-GO
-
-CREATE TABLE [LoaiSanPham] (
-    [MaLoai] INT PRIMARY KEY,
-    [TenLoai] NVARCHAR(100) NOT NULL
+CREATE TABLE [dbo].[KhachHang](
+    [MaKH] [int] IDENTITY(1, 1) PRIMARY KEY,
+    [TenKH] [nvarchar](100) NOT NULL,
+    [CCCD] [varchar](12) NOT NULL UNIQUE CHECK (LEN(CCCD) = 12),
+    [SDT] [varchar](15) NOT NULL UNIQUE,
+    [Email] [varchar](255),
+    [DiaChi] [nvarchar](255),
+    [NgaySinh] [date],
+    [GioiTinh] [nvarchar](10),
+    [GhiChu] [nvarchar](max),
+    [NgayTao] [datetime] DEFAULT GETDATE()
 );
-GO
 ```
 
-- Mục đích: lưu loại sản phẩm (chuột, bàn phím,...)
-- Kết quả: bảng được tạo thành công
-
-![Ảnh 2](pic/pic_15.png)
-
----
-
-## Ảnh 3: Tạo bảng SanPham
-
+**Bảng 2: Nhân viên (dbo.NhanVien)**
+![3. Cấu trúc bảng Nhân viên](images/3.png)
 ```sql
-USE [QuanLyGear_K235480106035];
-GO
-
-CREATE TABLE [SanPham] (
-    [MaSP] INT PRIMARY KEY,
-    [TenSP] NVARCHAR(150) NOT NULL,
-    [Gia] MONEY CHECK ([Gia] > 0),
-    [SoLuongTon] INT CHECK ([SoLuongTon] >= 0),
-    [MaLoai] INT
+CREATE TABLE [dbo].[NhanVien](
+    [MaNV] [int] IDENTITY(1, 1) PRIMARY KEY,
+    [TenNV] [nvarchar](100) NOT NULL,
+    [CCCD] [varchar](12) NOT NULL UNIQUE CHECK (LEN(CCCD) = 12),
+    [SDT] [varchar](15) NOT NULL UNIQUE,
+    [Email] [varchar](255) UNIQUE,
+    [DiaChi] [nvarchar](255),
+    [ChucVu] [nvarchar](50) DEFAULT N'Nhân viên',
+    [Username] [varchar](50) NOT NULL UNIQUE,
+    [PasswordHash] [varchar](255) NOT NULL,
+    [IsActive] [bit] DEFAULT 1,
+    [NgayTao] [datetime] DEFAULT GETDATE()
 );
-GO
 ```
 
-- Mục đích: lưu thông tin sản phẩm
-- Ràng buộc:
-  - PK: MaSP
-  - CHECK: Giá > 0
-
-![Ảnh 3](pic/pic_17.png)
-
----
-
-## Ảnh 4: Tạo bảng DonHang
-
+**Bảng 3: Hợp đồng (dbo.HopDong)**
+![4. Cấu trúc bảng Hợp đồng](images/4.png)
 ```sql
-USE [QuanLyGear_K235480106035];
-GO
-
-CREATE TABLE [DonHang] (
-    [MaDH] INT PRIMARY KEY,
-    [NgayDat] DATE DEFAULT GETDATE(),
-    [TongTien] MONEY
+CREATE TABLE [dbo].[HopDong](
+    [MaHD] [int] IDENTITY(1, 1) PRIMARY KEY,
+    [MaKH] [int] NOT NULL,
+    [MaNV] [int] NOT NULL,
+    [NgayVay] [date] DEFAULT GETDATE(),
+    [SoTienVay] [decimal](18, 2) NOT NULL CHECK (SoTienVay > 0),
+    [LaiSuatNgay] [decimal](10, 5) DEFAULT 0.005,
+    [Deadline1] [date] NOT NULL,
+    [Deadline2] [date] NOT NULL,
+    [TongTienDaTra] [decimal](18, 2) DEFAULT 0,
+    [TongNoHienTai] [decimal](18, 2) DEFAULT 0,
+    [TrangThai] [nvarchar](50) DEFAULT N'Đang vay', -- Đang vay, Quá hạn (nợ xấu), Đã thanh toán, Đã thanh lý tài sản
+    [MoTa] [nvarchar](max),
+    [IsBadDebt] [bit] DEFAULT 0,
+    [IsLiquidated] [bit] DEFAULT 0,
+    [NgayTatToan] [datetime],
+    [NgayTao] [datetime] DEFAULT GETDATE(),
+    CONSTRAINT FK_HopDong_KhachHang FOREIGN KEY (MaKH) REFERENCES dbo.KhachHang(MaKH),
+    CONSTRAINT FK_HopDong_NhanVien FOREIGN KEY (MaNV) REFERENCES dbo.NhanVien(MaNV),
+    CONSTRAINT CK_HopDong_Deadline CHECK (Deadline2 > Deadline1)
 );
-GO
 ```
 
-- Mục đích: lưu thông tin đơn hàng
-- Ràng buộc:
-  - PK: MaDH
-  - CHECK: TongTien > 0
-
-![Ảnh 4](pic/pic_30.png)
-
----
-
-## Ảnh 5: Tạo khóa ngoại
-
+**Bảng 4: Tài sản (dbo.TaiSan)**
+![5. Cấu trúc bảng Tài sản](images/5.png)
 ```sql
-ALTER TABLE [SanPham]
-ADD CONSTRAINT FK_SP_Loai
-FOREIGN KEY ([MaLoai]) REFERENCES [LoaiSanPham]([MaLoai]);
-
-ALTER TABLE [ChiTietDonHang]
-ADD CONSTRAINT FK_CT_DH
-FOREIGN KEY ([MaDH]) REFERENCES [DonHang]([MaDH]);
-
-ALTER TABLE [ChiTietDonHang]
-ADD CONSTRAINT FK_CT_SP
-FOREIGN KEY ([MaSP]) REFERENCES [SanPham]([MaSP]);
-```
-
-- Mục đích: liên kết sản phẩm với loại
-
-![Ảnh 5](pic/pic_19.png)
-
----
-
-# PHẦN 2: FUNCTION
-
-## Ảnh 5: Built-in Function
-
-```sql
-SELECT GETDATE() AS NgayHienTai;
-
-SELECT SUM(Gia) AS TongGia
-FROM SanPham;
-
-SELECT LEN(N'Gaming Gear') AS DoDaiChuoi;
-```
-
-- Ý nghĩa:
-  - GETDATE(): lấy ngày hiện tại
-  - SUM(): tính tổng giá trị
-  - LEN(): tính độ dài chuỗi
-
-    ![Ảnh 6](pic/pic_2.png)
-
----
-
-## Ảnh 6: Scalar Function – Tính tổng tiền đơn hàng
-
-```sql
-CREATE FUNCTION fn_TongTienDon (@MaDH INT)
-RETURNS MONEY
-AS
-BEGIN
-    DECLARE @tong MONEY;
-
-    SELECT @tong = SUM(SoLuong * DonGia)
-    FROM ChiTietDonHang
-    WHERE MaDH = @MaDH;
-
-    RETURN @tong;
-END;
-GO
-
-SELECT dbo.fn_TongTienDon(1);
-```
-
-- Ý nghĩa: Tính tổng tiền đơn hàng
-- Mục đích: tính tổng tiền đơn hàng
-- Kết quả: trả về tổng tiền
-
-![Ảnh 6](pic/pic_5.png)
-
----
-
-## Ảnh 7: Inline Table Function - Lọc sản phẩm sắp hết hàng
-
-```sql
-CREATE FUNCTION fn_SP_TonThap (@SoLuong INT)
-RETURNS TABLE
-AS
-RETURN (
-    SELECT * FROM SanPham
-    WHERE SoLuongTon <= @SoLuong
+CREATE TABLE [dbo].[TaiSan](
+    [MaTS] [int] IDENTITY(1, 1) PRIMARY KEY,
+    [MaHD] [int] NOT NULL,
+    [TenTS] [nvarchar](255) NOT NULL,
+    [LoaiTaiSan] [nvarchar](100) NOT NULL,
+    [ThuongHieu] [nvarchar](100),
+    [Model] [nvarchar](100),
+    [MauSac] [nvarchar](50),
+    [SerialNumber] [varchar](100),
+    [MoTa] [nvarchar](max),
+    [GiaTriDinhGia] [decimal](18, 2) NOT NULL CHECK (GiaTriDinhGia >= 0),
+    [GiaThanhLy] [decimal](18, 2),
+    [TrangThaiTS] [nvarchar](50) DEFAULT N'Đang cầm cố',
+    [IsSold] [bit] DEFAULT 0,
+    [NgayNhapKho] [datetime] DEFAULT GETDATE(),
+    [NgayTraKhach] [datetime],
+    [NgayThanhLy] [datetime],
+    [GhiChu] [nvarchar](max),
+    CONSTRAINT FK_TaiSan_HopDong FOREIGN KEY (MaHD) REFERENCES dbo.HopDong(MaHD)
 );
-GO
-
-SELECT * FROM fn_SP_TonThap(5);
 ```
 
-- Ý nghĩa: Lọc sản phẩm sắp hết hàng
-- Mục đích: Lọc sản phẩm sắp hết hàng
-- Kết quả: Trả về bảng sản phẩm sắp hết hàng
+**Bảng 5: Nhật ký hợp đồng (dbo.LogHopDong)**
+![6. Cấu trúc bảng Log](images/6.png)
+```sql
+CREATE TABLE [dbo].[LogHopDong](
+    [MaLog] [int] IDENTITY(1, 1) PRIMARY KEY,
+    [MaHD] [int] NOT NULL,
+    [MaNV] [int] NOT NULL, -- Người thu tiền (Audit Log)
+    [NgayTra] [datetime] DEFAULT GETDATE(),
+    [SoTienTra] [decimal](18, 2) NOT NULL CHECK (SoTienTra > 0),
+    [TienGocDaThu] [decimal](18, 2) DEFAULT 0,
+    [TienLaiDaThu] [decimal](18, 2) DEFAULT 0,
+    [DuNoGocConLai] [decimal](18, 2) DEFAULT 0,
+    [TongNoConLai] [decimal](18, 2) DEFAULT 0,
+    [HinhThucThanhToan] [nvarchar](50) DEFAULT N'Tiền mặt',
+    [GhiChu] [nvarchar](max),
+    CONSTRAINT FK_LogHopDong_HopDong FOREIGN KEY (MaHD) REFERENCES dbo.HopDong(MaHD),
+    CONSTRAINT FK_LogHopDong_NhanVien FOREIGN KEY (MaNV) REFERENCES dbo.NhanVien(MaNV)
+);
+```
 
-![Ảnh 7](pic/pic_4.png)
+**Bảng 6: Lịch sử trạng thái (dbo.LichSuTrangThaiHopDong)**
+![7. Cấu trúc bảng Lịch sử](images/7.png)
+```sql
+CREATE TABLE [dbo].[LichSuTrangThaiHopDong](
+    [MaLS] [int] IDENTITY(1, 1) PRIMARY KEY,
+    [MaHD] [int] NOT NULL,
+    [MaNV] [int],
+    [TrangThaiCu] [nvarchar](50),
+    [TrangThaiMoi] [nvarchar](50) NOT NULL,
+    [ThoiGianThayDoi] [datetime] DEFAULT GETDATE(),
+    [GhiChu] [nvarchar](max),
+    CONSTRAINT FK_LichSuTrangThai_HopDong FOREIGN KEY (MaHD) REFERENCES dbo.HopDong(MaHD),
+    CONSTRAINT FK_LichSuTrangThai_NhanVien FOREIGN KEY (MaNV) REFERENCES dbo.NhanVien(MaNV)
+);
+```
+
+### 2.3. Ràng buộc và Toàn vẹn dữ liệu
+Hệ thống áp dụng các ràng buộc chặt chẽ để đảm bảo chất lượng dữ liệu:
+- **CHECK Constraints:** Kiểm tra độ dài CCCD (12 ký tự), số tiền vay/trả phải dương, giá trị định giá không âm, và ngày hết hạn sau (`Deadline2`) phải lớn hơn ngày hết hạn trước (`Deadline1`).
+- **DEFAULT Constraints:** Tự động điền ngày tạo (`GETDATE()`), trạng thái mặc định (`Đang vay`, `Đang cầm cố`), và các giá trị tài chính ban đầu bằng 0.
+- **UNIQUE Constraints:** Đảm bảo không trùng lặp CCCD, Số điện thoại, Email và Username.
+- **FOREIGN KEY Constraints:** Thiết lập mối quan hệ cha-con giữa Khách hàng/Nhân viên với Hợp đồng, và giữa Hợp đồng với Tài sản/Nhật ký giao dịch.
 
 ---
 
-## Ảnh 8: Multi-statement Function - Xếp loại sản phẩm
+## 3. Các sự kiện nghiệp vụ (Events)
+
+### 3.1. Event 1: Đăng ký hợp đồng mới (JSON-based)
+![8. Lệnh tạo Stored Procedure sp_RegisterContract](images/sp_RegisterContract.png)
+*Sử dụng OPENJSON để bóc tách danh sách tài sản từ chuỗi JSON đầu vào, đảm bảo tính nguyên tử (Atomic) thông qua Transaction.*
+
+### 3.2. Event 2: Tính toán công nợ thời gian thực (Compound Interest)
+![9. Lệnh tạo Hàm fn_CalcMoneyTransaction và fn_CalcMoneyContract](images/fn_CalcMoneyTransaction.png)
+- **Hàm `fn_CalcMoneyContract`:** Tính toán tổng số tiền khách phải trả (Gốc + Lãi đơn + Lãi kép) tính đến ngày `TargetDate`.
+- **Công thức tính toán:**
+    1. **Lãi đơn (Trước hoặc tại Deadline 1):**
+       $$A_1 = P \times (1 + r \times n_1)$$
+       *($P$: Gốc, $r$: Lãi suất 5.000đ/1.000.000đ/ngày = 0.005, $n_1$: Số ngày vay thực tế $\leq$ Deadline 1)*
+    2. **Lãi kép (Sau Deadline 1):** Toàn bộ dư nợ tại mốc Deadline 1 ($A_1$) sẽ trở thành gốc mới để tính lãi lũy tiến theo ngày.
+       $$A_{final} = A_1 \times (1 + r)^{n_2}$$
+       *($n_2$: Số ngày quá hạn tính từ sau Deadline 1)*
+- **Cài đặt:** Sử dụng hàm `POWER(1 + @Rate, @DaysCompound)` trong SQL để tính toán chính xác số dư nợ theo thời gian thực.
+
+### 3.3. Event 3: Xử lý trả nợ và Audit Log
+![10. Lệnh tạo Stored Procedure sp_ProcessPayment](images/sp_ProcessPayment.png)
+*Ghi nhận dòng tiền chi tiết vào bảng Log, tự động cập nhật trạng thái hợp đồng và tài sản khi khách trả đủ tiền.*
+
+### 3.4. Event 4: Truy vấn danh sách nợ xấu (View)
+![11. Lệnh tạo View vw_BadDebts](images/vw_BadDebts.png)
+*View tổng hợp các hợp đồng quá hạn kèm dự báo nợ sau 1 tháng để phục vụ bộ phận thu hồi nợ.*
+
+### 3.5. Event 5: Quản lý workflow trạng thái (Triggers)
+![12. Lệnh tạo Trigger trg_Event5_Workflow](images/trg_Event5_Workflow.png)
+Hệ thống sử dụng 3 Trigger chính để tự động hóa quy trình:
+- **Trigger 1:** Chuyển trạng thái Hợp đồng từ `Đang vay` sang `Quá hạn (nợ xấu)` khi vượt mốc `Deadline 1`.
+- **Trigger 2:** Chuyển trạng thái Tài sản sang `Sẵn sàng thanh lý` khi Hợp đồng vượt mốc `Deadline 2`.
+- **Trigger 3:** Khi Hợp đồng chuyển sang `Đã thanh lý tài sản`, tự động cập nhật Tài sản tương ứng sang trạng thái `Đã bán thanh lý`.
+
+---
+
+## 4. Các sự kiện bổ sung (Audit & Renewal)
+
+### 4.1. Gia hạn hợp đồng
+![13. Lệnh tạo Stored Procedure sp_RenewContract](images/sp_RenewContract.png)
+- **Cơ chế:** Khách hàng trả tiền lãi phát sinh để được dời ngày Deadline, giúp giảm áp lực tài chính và tránh việc bị thanh lý tài sản.
+
+### 4.2. Truy vết lịch sử giao dịch
+![14. Lệnh tạo Stored Procedure sp_GetContractHistory](images/sp_GetContractHistory.png)
+- **Cơ chế:** Truy vấn toàn bộ lịch sử trả nợ từ bảng Audit Log của một hợp đồng cụ thể, minh bạch hóa quá trình tất toán.
+
+---
+
+## 5. Dữ liệu mẫu (Sample Data) - Trích xuất từ `script.sql`
+
+Kịch bản chèn dữ liệu mẫu bao gồm ít nhất **10 bản ghi cho mỗi bảng** để kiểm tra toàn diện các trường hợp:
 
 ```sql
-CREATE FUNCTION fn_XepLoaiSP ()
-RETURNS @tbl TABLE (
-    MaSP INT,
-    TenSP NVARCHAR(150),
-    TrangThai NVARCHAR(50)
-)
-AS
-BEGIN
-    INSERT INTO @tbl
-    SELECT
-        MaSP,
-        TenSP,
-        CASE
-            WHEN SoLuongTon = 0 THEN N'Hết hàng'
-            WHEN SoLuongTon < 5 THEN N'Sắp hết'
-            ELSE N'Còn nhiều'
-        END
-    FROM SanPham;
+-- 1. CHÈN NHÂN VIÊN (Tổng 10 bản ghi trong script.sql)
+INSERT INTO dbo.NhanVien (TenNV, CCCD, SDT, DiaChi, Email, ChucVu, Username, PasswordHash)
+VALUES 
+(N'Nguyễn Văn Minh', '001203004567', '0912345678', N'Hà Nội', 'staff01@gmail.com', N'Nhân viên', 'staff01', 'pass1'),
+(N'Lê Thị Thu Ngân', '001203004888', '0988776655', N'Hà Nội', 'ngan@gmail.com', N'Kế toán', 'nganle', 'pass2'),
+-- ... (xem chi tiết tại script.sql)
 
-    RETURN;
-END;
-GO
+-- 2. CHÈN KHÁCH HÀNG (Tổng 10 bản ghi trong script.sql)
+INSERT INTO dbo.KhachHang (TenKH, CCCD, SDT, DiaChi, NgaySinh)
+VALUES 
+(N'Lê Văn Nam', '035201004567', '0987654321', N'Thái Nguyên', '2004-03-15'),
+(N'Phạm Minh Tuấn', '035201001111', '0901234567', N'Hà Nội', '1995-05-20'),
+-- ... (xem chi tiết tại script.sql)
 
-SELECT * FROM dbo.fn_XepLoaiSP();
+-- 3. ĐĂNG KÝ HỢP ĐỒNG (Tạo 10 hợp đồng mẫu qua SP)
+DECLARE @Json NVARCHAR(MAX) = N'[{"TenTS": "iPhone 15 Pro Max", "LoaiTS": "Điện thoại", "GiaTri": 25000000}]';
+EXEC dbo.sp_RegisterContract N'Lê Văn Nam', '035201004567', '0987654321', 1, 15000000, '2026-05-01', '2026-06-01', @Json;
+
+-- 4. THỰC HIỆN GIAO DỊCH TRẢ NỢ (10 bản ghi Log)
+EXEC dbo.sp_ProcessPayment @MaHD = 1, @MaNV = 1, @SoTienTra = 2000000, @HinhThuc = N'Tiền mặt';
 ```
 
-- Ý nghĩa: Xếp loại SP
-- Mục đích: Xếp loại SP
-- Kết quả: Trả về bảng xếp loại SP
-
-![Ảnh 8](pic/pic_6.png)
-
-# PHẦN 3: STORED PROCEDURE
-
-## Ảnh 9: SP thêm sản phẩm
-
-```sql
-CREATE PROCEDURE sp_ThemSanPham
-    @MaSP INT,
-    @TenSP NVARCHAR(150),
-    @Gia MONEY,
-    @SoLuong INT,
-    @MaLoai INT
-AS
-BEGIN
-    IF EXISTS (SELECT 1 FROM SanPham WHERE MaSP = @MaSP)
-    BEGIN
-        PRINT N'Sản phẩm đã tồn tại';
-    END
-    ELSE
-    BEGIN
-        INSERT INTO SanPham
-        VALUES (@MaSP, @TenSP, @Gia, @SoLuong, @MaLoai);
-
-        PRINT N'Thêm thành công';
-    END
-END;
-GO
-
-```
-
-![Ảnh 9](pic/pic_8.png)
-
 ---
-
-- Ý nghĩa: SP thêm sản phẩm
-- Mục đích: Thêm sản phẩm vào bảng SanPham
-- Kết quả: Thêm sản phẩm vào bảng SanPham
-
-## Ảnh 10: Gọi SP
-
-```sql
-EXEC sp_ThemSanPham 4, N'Bàn phím cơ ASUS', 3000000, 10, 2;
-```
-
-![Ảnh 10](pic/pic_31.png)
-
----
-
-- Ý nghĩa: Gọi SP thêm sản phẩm
-- Mục đích: Thêm sản phẩm vào bảng SanPham
-- Kết quả: Thêm sản phẩm vào bảng SanPham
-
-# PHẦN 4: TRIGGER VÀ XỬ LÝ NGHIỆP VỤ
-
-## Ảnh 1: Trigger tự động trừ kho khi bán hàng
-
-```sql
-CREATE OR ALTER TRIGGER trg_TruKhoSauBan
-ON [ChiTietDonHang]
-AFTER INSERT
-AS
-BEGIN
-    -- Kiểm tra bán vượt tồn
-    IF EXISTS (
-        SELECT 1
-        FROM inserted i
-        JOIN SanPham sp ON sp.MaSP = i.MaSP
-        WHERE i.SoLuong > sp.SoLuongTon
-    )
-    BEGIN
-        PRINT N'Không đủ hàng trong kho';
-        ROLLBACK TRANSACTION;
-        RETURN;
-    END;
-
-    -- Trừ kho
-    UPDATE sp
-    SET sp.SoLuongTon = sp.SoLuongTon - i.SoLuong
-    FROM SanPham sp
-    JOIN inserted i ON sp.MaSP = i.MaSP;
-END;
-GO
-```
-
-- Ý nghĩa: Trigger tự động trừ kho khi bán hàng
-- Mục đích: Khi thêm chi tiết đơn hàng, hệ thống tự động trừ số lượng tồn kho
-- Kết quả: Sau khi insert, SoLuongTon giảm tương ứng
-
-![Ảnh 1](pic/pic_32.png)
-
----
-
-## Ảnh 2: Test trigger (trước khi bán)
-
-```sql
-USE [QuanLyGear_K235480106035];
-GO
-
--- Đảm bảo có sản phẩm
-SELECT * FROM SanPham WHERE MaSP = 1;
-
--- Tạo đơn hàng (bảng CHA)
-INSERT INTO DonHang VALUES (100, GETDATE(), NULL);
-
--- Kiểm tra trước khi bán
-PRINT N'Trước khi bán';
-SELECT * FROM SanPham WHERE MaSP = 1;
-
-GO
-```
-
-- Mục đích: kiểm tra trigger hoạt động trước khi insert
-
-![Ảnh 2](pic/pic_22.png)
-
----
-
-## Ảnh 2.1: Trigger chạy thành công
-
-```sql
-INSERT INTO ChiTietDonHang VALUES (100, 2, 1, 2000000);
-
-```
-
-- Mục đích: kiểm tra trigger hoạt động sau khi insert
-
-![Ảnh 2.1](pic/pic_23.png)
-
----
-
-## Ảnh 2.2: Kiểm tra insert sau khi trigger chạy thành công
-
-```sql
-PRINT N'Sau khi bán';
-SELECT * FROM SanPham WHERE MaSP = 1;
-
-```
-
-- Ý nghĩa: Kiểm tra insert sau khi trigger chạy thành công
-- Mục đích: Kiểm tra trigger hoạt động sau khi insert
-- Kết quả: Sau khi insert, SoLuongTon giảm tương ứng
-
-![Ảnh 2.2](pic/pic_24.png)
-
----
-
-## Ảnh 3: Trigger từ bảng A → B
-
-```sql
-CREATE TRIGGER trg_SP_Update_DH
-ON SanPham
-AFTER UPDATE
-AS
-BEGIN
-    UPDATE DonHang
-    SET TongTien = ISNULL(TongTien,0) + 1
-    WHERE MaDH = 100;
-END;
-GO
-```
-
-- Mục đích: Khi cập nhật sản phẩm thì cập nhật đơn hàng
-
-![Ảnh 3](pic/pic_25.png)
-
----
-
-## Ảnh 4: Trigger từ bảng B → A
-
-```sql
-CREATE TRIGGER trg_DH_Update_SP
-ON DonHang
-AFTER UPDATE
-AS
-BEGIN
-    UPDATE SanPham
-    SET SoLuongTon = SoLuongTon + 1
-    WHERE MaSP = 1;
-END;
-GO
-```
-
-- Mục đích: Khi cập nhật đơn hàng thì cập nhật lại sản phẩm
-
-![Ảnh 4](pic/pic_26.png)
-
----
-
-## Ảnh 5: Lỗi vòng lặp trigger
-
-```sql
-UPDATE SanPham
-SET SoLuongTon = SoLuongTon + 1
-WHERE MaSP = 1;
-```
-
-- Kết quả hệ thống:
-
-```
-Maximum stored procedure, function, trigger, or view nesting level exceeded (limit 32)
-```
-
-![Ảnh 5](pic/pic_27.png)
-
----
-
-## Nhận xét
-
-- Khi trigger ở bảng A cập nhật bảng B, và trigger ở bảng B cập nhật ngược lại bảng A, hệ thống sẽ tạo vòng lặp vô hạn
-- SQL Server tự động dừng sau 32 lần lặp và báo lỗi
-- Đây là thiết kế không tốt trong thực tế
-
----
-
-## Kết luận phần Trigger
-
-- Trigger giúp tự động hóa xử lý dữ liệu
-- Tuy nhiên cần thiết kế một chiều để tránh vòng lặp
-- Không nên sử dụng trigger chồng nhau
-
----
-
-# PHẦN 5: CURSOR VÀ DUYỆT DỮ LIỆU
-
-## Ảnh 6: Sử dụng Cursor
-
-```sql
-DECLARE cur_DH CURSOR FOR
-SELECT MaDH FROM DonHang;
-
-DECLARE @MaDH INT;
-DECLARE @Tong MONEY;
-
-OPEN cur_DH;
-FETCH NEXT FROM cur_DH INTO @MaDH;
-
-WHILE @@FETCH_STATUS = 0
-BEGIN
-    SELECT @Tong = SUM(SoLuong * DonGia)
-    FROM ChiTietDonHang
-    WHERE MaDH = @MaDH;
-
-    PRINT N'Đơn hàng ' + CAST(@MaDH AS NVARCHAR)
-        + N' có tổng tiền: ' + CAST(@Tong AS NVARCHAR);
-
-    FETCH NEXT FROM cur_DH INTO @MaDH;
-END;
-
-CLOSE cur_DH;
-DEALLOCATE cur_DH;
-```
-
-- Mục đích: duyệt từng đơn hàng và xử lý riêng từng bản ghi
-- Kết quả: in ra tổng tiền của từng đơn hàng
-
-![Ảnh 6](pic/pic_28.png)
-
----
-
-## Ảnh 7: Không dùng Cursor (SQL thuần)
-
-```sql
-SELECT
-    MaDH,
-    SUM(SoLuong * DonGia) AS TongTien
-FROM ChiTietDonHang
-GROUP BY MaDH;
-```
-
-- Mục đích: tính tổng tiền theo cách tối ưu hơn
-- Kết quả: trả về danh sách tổng tiền
-
-![Ảnh 7](pic/pic_29.png)
-
----
-
-## So sánh
-
----
-
-| Tiêu chí   | Cursor         | SQL thường       |
-| ---------- | -------------- | ---------------- |
-| Tốc độ     | Chậm           | Nhanh            |
-| Cách xử lý | từng dòng      | tập hợp          |
-| Khi dùng   | logic phức tạp | đa số trường hợp |
-
----
-
----
-
-## Nhận xét
-
-- Cursor xử lý từng dòng nên chậm hơn
-- SQL thuần tối ưu hơn trong đa số trường hợp
-- Cursor chỉ nên dùng khi cần xử lý logic riêng từng bản ghi
-
----
-
-## Kết luận phần Cursor
-
-- Cursor hữu ích nhưng không nên lạm dụng
-- Nên ưu tiên SQL dạng tập hợp để đạt hiệu năng tốt hơn
-
-* Đã xây dựng đầy đủ hệ thống quản lý kho gear
-* Áp dụng Function, Procedure, Trigger, Cursor
-* Hiểu rõ cách tổ chức và xử lý dữ liệu trong SQL Server
+*Báo cáo được trình bày bởi Trần Văn Khải - MSSV: K235480106035.*
