@@ -159,14 +159,15 @@ Hệ thống áp dụng các ràng buộc chặt chẽ để đảm bảo chất
 
 ### 3.2. Event 2: Tính toán công nợ thời gian thực (Compound Interest)
 ![9. Lệnh tạo Hàm fn_CalcMoneyTransaction và fn_CalcMoneyContract](images_bt_03/fn_CalcMoneyTransaction.png)
+![Sơ đồ thuật toán tính lãi](images_bt_03/so_do_thuat_toan.png)
 - **Hàm `fn_CalcMoneyContract`:** Tính toán tổng số tiền khách phải trả (Gốc + Lãi đơn + Lãi kép) tính đến ngày `TargetDate`.
 - **Công thức tính toán:**
     1. **Lãi đơn (Trước hoặc tại Deadline 1):**
-       $$A_1 = P \times (1 + r \times n_1)$$
-       *($P$: Gốc, $r$: Lãi suất 5.000đ/1.000.000đ/ngày = 0.005, $n_1$: Số ngày vay thực tế $\leq$ Deadline 1)*
-    2. **Lãi kép (Sau Deadline 1):** Toàn bộ dư nợ tại mốc Deadline 1 ($A_1$) sẽ trở thành gốc mới để tính lãi lũy tiến theo ngày.
-       $$A_{final} = A_1 \times (1 + r)^{n_2}$$
-       *($n_2$: Số ngày quá hạn tính từ sau Deadline 1)*
+       - `A1 = P x (1 + r x n1)`
+       - Trong đó: P = Gốc, r = Lãi suất 5.000đ/1.000.000đ/ngày = 0.005, n1 = Số ngày vay thực tế <= Deadline 1
+    2. **Lãi kép (Sau Deadline 1):** Toàn bộ dư nợ tại mốc Deadline 1 (A1) sẽ trở thành gốc mới để tính lãi lũy tiến theo ngày.
+       - `A_final = A1 x (1 + r)^n2`
+       - Trong đó: n2 = Số ngày quá hạn tính từ sau Deadline 1
 - **Cài đặt:** Sử dụng hàm `POWER(1 + @Rate, @DaysCompound)` trong SQL để tính toán chính xác số dư nợ theo thời gian thực.
 
 ### 3.3. Event 3: Xử lý trả nợ và Audit Log
