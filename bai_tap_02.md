@@ -24,7 +24,7 @@ GO
 - Mục đích: tạo cơ sở dữ liệu cho hệ thống quản lý gear
 - Kết quả: database được tạo thành công
 
-![Ảnh 1](pic/pic_1.png)
+![Ảnh 1](images_bt_02/pic_1.png)
 
 ---
 
@@ -46,7 +46,7 @@ GO
 - Mục đích: lưu loại sản phẩm (chuột, bàn phím,...)
 - Kết quả: bảng được tạo thành công
 
-![Ảnh 2](pic/pic_15.png)
+![Ảnh 2](images_bt_02/pic_15.png)
 
 ---
 
@@ -71,7 +71,7 @@ GO
   - PK: MaSP
   - CHECK: Giá > 0
 
-![Ảnh 3](pic/pic_17.png)
+![Ảnh 3](images_bt_02/pic_17.png)
 
 ---
 
@@ -94,7 +94,7 @@ GO
   - PK: MaDH
   - CHECK: TongTien > 0
 
-![Ảnh 4](pic/pic_30.png)
+![Ảnh 4](images_bt_02/pic_30.png)
 
 ---
 
@@ -116,7 +116,7 @@ FOREIGN KEY ([MaSP]) REFERENCES [SanPham]([MaSP]);
 
 - Mục đích: liên kết sản phẩm với loại
 
-![Ảnh 5](pic/pic_19.png)
+![Ảnh 5](images_bt_02/pic_19.png)
 
 ---
 
@@ -138,7 +138,7 @@ SELECT LEN(N'Gaming Gear') AS DoDaiChuoi;
   - SUM(): tính tổng giá trị
   - LEN(): tính độ dài chuỗi
 
-    ![Ảnh 6](pic/pic_2.png)
+    ![Ảnh 6](images_bt_02/pic_2.png)
 
 ---
 
@@ -166,7 +166,7 @@ SELECT dbo.fn_TongTienDon(1);
 - Mục đích: tính tổng tiền đơn hàng
 - Kết quả: trả về tổng tiền
 
-![Ảnh 6](pic/pic_5.png)
+![Ảnh 6](images_bt_02/pic_5.png)
 
 ---
 
@@ -189,7 +189,7 @@ SELECT * FROM fn_SP_TonThap(5);
 - Mục đích: Lọc sản phẩm sắp hết hàng
 - Kết quả: Trả về bảng sản phẩm sắp hết hàng
 
-![Ảnh 7](pic/pic_4.png)
+![Ảnh 7](images_bt_02/pic_4.png)
 
 ---
 
@@ -226,7 +226,7 @@ SELECT * FROM dbo.fn_XepLoaiSP();
 - Mục đích: Xếp loại SP
 - Kết quả: Trả về bảng xếp loại SP
 
-![Ảnh 8](pic/pic_6.png)
+![Ảnh 8](images_bt_02/pic_6.png)
 
 # PHẦN 3: STORED PROCEDURE
 
@@ -257,7 +257,7 @@ GO
 
 ```
 
-![Ảnh 9](pic/pic_8.png)
+![Ảnh 9](images_bt_02/pic_8.png)
 
 ---
 
@@ -271,7 +271,7 @@ GO
 EXEC sp_ThemSanPham 4, N'Bàn phím cơ ASUS', 3000000, 10, 2;
 ```
 
-![Ảnh 10](pic/pic_31.png)
+![Ảnh 10](images_bt_02/pic_31.png)
 
 ---
 
@@ -315,7 +315,7 @@ GO
 - Mục đích: Khi thêm chi tiết đơn hàng, hệ thống tự động trừ số lượng tồn kho
 - Kết quả: Sau khi insert, SoLuongTon giảm tương ứng
 
-![Ảnh 1](pic/pic_32.png)
+![Ảnh 1](images_bt_02/pic_32.png)
 
 ---
 
@@ -340,7 +340,7 @@ GO
 
 - Mục đích: kiểm tra trigger hoạt động trước khi insert
 
-![Ảnh 2](pic/pic_22.png)
+![Ảnh 2](images_bt_02/pic_22.png)
 
 ---
 
@@ -353,7 +353,7 @@ INSERT INTO ChiTietDonHang VALUES (100, 2, 1, 2000000);
 
 - Mục đích: kiểm tra trigger hoạt động sau khi insert
 
-![Ảnh 2.1](pic/pic_23.png)
+![Ảnh 2.1](images_bt_02/pic_23.png)
 
 ---
 
@@ -369,7 +369,7 @@ SELECT * FROM SanPham WHERE MaSP = 1;
 - Mục đích: Kiểm tra trigger hoạt động sau khi insert
 - Kết quả: Sau khi insert, SoLuongTon giảm tương ứng
 
-![Ảnh 2.2](pic/pic_24.png)
+![Ảnh 2.2](images_bt_02/pic_24.png)
 
 ---
 
@@ -390,7 +390,7 @@ GO
 
 - Mục đích: Khi cập nhật sản phẩm thì cập nhật đơn hàng
 
-![Ảnh 3](pic/pic_25.png)
+![Ảnh 3](images_bt_02/pic_25.png)
 
 ---
 
@@ -411,7 +411,7 @@ GO
 
 - Mục đích: Khi cập nhật đơn hàng thì cập nhật lại sản phẩm
 
-![Ảnh 4](pic/pic_26.png)
+![Ảnh 4](images_bt_02/pic_26.png)
 
 ---
 
@@ -429,7 +429,7 @@ WHERE MaSP = 1;
 Maximum stored procedure, function, trigger, or view nesting level exceeded (limit 32)
 ```
 
-![Ảnh 5](pic/pic_27.png)
+![Ảnh 5](images_bt_02/pic_27.png)
 
 ---
 
@@ -482,7 +482,7 @@ DEALLOCATE cur_DH;
 - Mục đích: duyệt từng đơn hàng và xử lý riêng từng bản ghi
 - Kết quả: in ra tổng tiền của từng đơn hàng
 
-![Ảnh 6](pic/pic_28.png)
+![Ảnh 6](images_bt_02/pic_28.png)
 
 ---
 
@@ -499,7 +499,7 @@ GROUP BY MaDH;
 - Mục đích: tính tổng tiền theo cách tối ưu hơn
 - Kết quả: trả về danh sách tổng tiền
 
-![Ảnh 7](pic/pic_29.png)
+![Ảnh 7](images_bt_02/pic_29.png)
 
 ---
 

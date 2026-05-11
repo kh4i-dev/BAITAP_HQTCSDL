@@ -3,7 +3,7 @@
 .gemini/
 .idea/
 .vscode/
-
+*.gitignore
 # Bỏ qua các file Python hỗ trợ (nếu bạn chỉ muốn nộp SQL/MD/HTML)
 *.py
 __pycache__/
